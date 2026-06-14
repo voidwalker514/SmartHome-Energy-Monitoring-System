@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home Energy Monitoring System</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-bolt-lightning brand-icon"></i>
+                <div class="brand-text">
+                    <h1>AETHER</h1>
+                    <span>ENERGY MONITOR</span>
+                </div>
+            </div>
+            <nav class="nav-links">
+                <a href="#" class="active" id="nav-dashboard"><i class="fa-solid fa-chart-line"></i> Live Dashboard</a>
+                <a href="/api/logs" target="_blank"><i class="fa-solid fa-file-csv"></i> Raw CSV Data</a>
+                <a href="#" id="btn-pdf-download"><i class="fa-solid fa-file-pdf"></i> PDF Statement</a>
+            </nav>
+            <div class="system-summary">
+                <div class="label">NODE ID</div>
+                <div class="value">ESP32_NODE_01</div>
+                <div class="label mt-10">FIRMWARE</div>
+                <div class="value">v2.1-stable</div>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="welcome">
+                    <h2>Smart Energy Dashboard</h2>
+                    <p>Real-time analytics and overload protection engine</p>
+                </div>
+                <div class="status-panel">
+                    <div class="time-display" id="time-display">--:--:--</div>
+                    <div class="status-badge state-ok" id="status-badge">
+                        <span class="status-dot"></span>
+                        <span id="status-text">SYSTEM NORMAL</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Metrics Cards Grid -->
+            <section class="metrics-grid">
+                <!-- Card 1: Voltage -->
+                <div class="card metric-card" id="card-voltage">
+                    <div class="card-header">
+                        <span class="card-title">AC RMS VOLTAGE</span>
+                        <i class="fa-solid fa-gauge-high card-icon color-voltage"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="metric-value"><span id="val-voltage">0.0</span> <span class="unit">V</span></h3>
+                        <div class="metric-progress-container">
+                            <div class="metric-progress-bar bg-voltage" id="prog-voltage" style="width: 0%;"></div>
+                        </div>
+                        <span class="card-desc">Nominal supply target: 230V</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Current -->
+                <div class="card metric-card" id="card-current">
+                    <div class="card-header">
+                        <span class="card-title">RMS LOAD CURRENT</span>
+                        <i class="fa-solid fa-wave-square card-icon color-current"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="metric-value"><span id="val-current">0.00</span> <span class="unit">A</span></h3>
+                        <div class="metric-progress-container">
+                            <div class="metric-progress-bar bg-current" id="prog-current" style="width: 0%;"></div>
+                        </div>
+                        <span class="card-desc">Safety limit: 13.04A</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Active Power -->
+                <div class="card metric-card" id="card-power">
+                    <div class="card-header">
+                        <span class="card-title">ACTIVE POWER</span>
+                        <i class="fa-solid fa-plug-circle-bolt card-icon color-power"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="metric-value"><span id="val-power">0.0</span> <span class="unit">W</span></h3>
+                        <div class="metric-progress-container">
+                            <div class="metric-progress-bar bg-power" id="prog-power" style="width: 0%;"></div>
+                        </div>
+                        <span class="card-desc">Overload limit: 3000W</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Energy -->
+                <div class="card metric-card" id="card-energy">
+                    <div class="card-header">
+                        <span class="card-title">ENERGY CONSUMPTION</span>
+                        <i class="fa-solid fa-charging-station card-icon color-energy"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="metric-value"><span id="val-energy">0.00000</span> <span class="unit">kWh</span></h3>
+                        <div class="card-desc-container">
+                            <span class="card-desc">Integrative sum (P × dt)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 5: Estimated Cost -->
+                <div class="card metric-card" id="card-cost">
+                    <div class="card-header">
+                        <span class="card-title">PROJECTED BILLING</span>
+                        <i class="fa-solid fa-money-bill-wave card-icon color-cost"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="metric-value"><span class="currency">$</span><span id="val-cost">0.00</span></h3>
+                        <div class="card-desc-container">
+                            <span class="card-desc">Tariff Rate: $0.15/kWh</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 6: Safety Relay -->
+                <div class="card metric-card" id="card-relay">
+                    <div class="card-header">
+                        <span class="card-title">SAFETY RELAY</span>
+                        <i class="fa-solid fa-toggle-on card-icon color-relay" id="relay-status-icon"></i>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="metric-value" id="val-relay-text">CLOSED</h3>
+                        <div class="relay-action">
+                            <button class="btn btn-danger btn-sm w-full mt-5" id="btn-manual-trip"><i class="fa-solid fa-power-off"></i> Force Cutoff</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Interactive Analytics Section -->
+            <div class="dashboard-body">
+                <!-- Column 1: Live Chart -->
+                <div class="card chart-card">
+                    <div class="card-title-bar">
+                        <h3><i class="fa-solid fa-chart-area"></i> Live Power Consumption Waveform</h3>
+                        <span class="chart-legend"><span class="dot power-dot"></span> Active Power (W)</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="realtimeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Column 2: Controls & Logs -->
+                <div class="dashboard-sidebar-panels">
+                    <!-- Appliance Controls -->
+                    <div class="card panel-card">
+                        <h3><i class="fa-solid fa-sliders"></i> Smart Appliances</h3>
+                        <div class="appliance-list">
+                            <!-- Air Conditioner -->
+                            <div class="appliance-item">
+                                <div class="appliance-info">
+                                    <i class="fa-solid fa-snowflake app-icon"></i>
+                                    <div>
+                                        <div class="app-name">Air Conditioner</div>
+                                        <div class="app-details">1200W - 1800W | Thermostat Cycle</div>
+                                    </div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="switch-ac" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+                            <!-- Refrigerator -->
+                            <div class="appliance-item">
+                                <div class="appliance-info">
+                                    <i class="fa-solid fa-kitchen-set app-icon"></i>
+                                    <div>
+                                        <div class="app-name">Refrigerator</div>
+                                        <div class="app-details">150W - 250W | Idle Duty</div>
+                                    </div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="switch-fridge" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+                            <!-- Microwave -->
+                            <div class="appliance-item">
+                                <div class="appliance-info">
+                                    <i class="fa-solid fa-circle-radiation app-icon"></i>
+                                    <div>
+                                        <div class="app-name">Microwave</div>
+                                        <div class="app-details">800W - 1200W | Occasional Draw</div>
+                                    </div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="switch-microwave">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+                            <!-- LED Bulbs -->
+                            <div class="appliance-item">
+                                <div class="appliance-info">
+                                    <i class="fa-solid fa-lightbulb app-icon"></i>
+                                    <div>
+                                        <div class="app-name">LED Lighting</div>
+                                        <div class="app-details">30W - 90W | Evening Load</div>
+                                    </div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="switch-led" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Simulation Scenarios -->
+                    <div class="card panel-card">
+                        <h3><i class="fa-solid fa-flask"></i> Interactive Scenarios</h3>
+                        <div class="scenario-actions">
+                            <button class="btn btn-warning w-full" id="btn-trigger-overload">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Trigger Overload Demo
+                            </button>
+                            <button class="btn btn-success w-full mt-10" id="btn-reset-relay" disabled>
+                                <i class="fa-solid fa-rotate-left"></i> Reset Safety Relay
+                            </button>
+                            <button class="btn btn-outline w-full mt-10" id="btn-reset-energy">
+                                <i class="fa-solid fa-trash-can"></i> Clear Consumption Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning/Alert Log Section -->
+            <section class="card alert-log-card">
+                <div class="alert-log-header">
+                    <h3><i class="fa-solid fa-bell"></i> Live Alarm Log</h3>
+                    <button class="btn btn-clear-logs" id="btn-clear-alerts"><i class="fa-solid fa-eraser"></i> Clear Logs</button>
+                </div>
+                <div class="alert-list" id="alert-list">
+                    <!-- Logs dynamically populated -->
+                    <div class="alert-item alert-info">
+                        <span class="alert-time">--:--:--</span>
+                        <span class="alert-badge bg-info">Info</span>
+                        <span class="alert-text">Energy Monitoring System simulation started. Monitoring virtual node.</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Live Toast/Buzzer Sound Alert for Overload -->
+    <div id="alarm-banner" class="alarm-banner hidden">
+        <div class="banner-content">
+            <i class="fa-solid fa-circle-exclamation alarm-bounce"></i>
+            <div>
+                <h4>SAFETY RELAY TRIPPED!</h4>
+                <p>Mains power supply cut off due to load limit violation (Overload limit exceeded).</p>
+            </div>
+            <button class="btn btn-banner-reset" id="btn-banner-reset">Reset Relay</button>
+        </div>
+    </div>
+
+    <!-- Hidden audio element for virtual buzzer beep -->
+    <audio id="beep-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+    <script src="app.js"></script>
+</body>
+</html>
